@@ -114,16 +114,18 @@ const MintPage = () => {
                   </a>
                 </Link>
               </Col> :
-              <Col lg="6" md="6" className="align-self-center">
+              <Col lg="8" md="8" className="align-self-center">
                 <>
                     <>
                       <br />
-                      <p className="connected" style={{ backgroundColor: "RGB(0,0,0,0.5)", padding: "5px" }}>
+                      <p className="connected" style={{ backgroundColor: "RGB(0,0,0,0.9)", padding: "5px" }}>
                         {dappParams.mintType} Mint Cost : <strong>{newValue} ETH</strong>
                         <br />
                         Wallet address: <strong>{currentUseState.xmPower.filteredAddress}</strong>
                         <br />
-                        Eth Balance : <strong>{currentUseState.xmPower.theBalance}</strong>
+                        {process.env.nativeCurrency} Balance : <strong>{currentUseState.xmPower.theBalance}</strong>
+                        <br />
+                        {process.env.contractCurrency} Balance : <strong>{currentUseState.xmPower.contractBalance}</strong>
                         <br />
                         Contract : <strong>{process.env.contractAddress}</strong>
                         <br />
@@ -145,8 +147,8 @@ const MintPage = () => {
                 </>
               </Col>
             }
-            <Col lg="6" md="6" >
-              <div style={{ padding: "150px" }}>
+            <Col lg="4" md="4" >
+              <div style={{ padding: "50px" }}>
                 <Image src={bannerimg} alt="Eminent Logo" />
               </div>
             </Col>

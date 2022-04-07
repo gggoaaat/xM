@@ -24,7 +24,7 @@ export default function NFTWalletBridge(e) {
     const providerOptions = e.bridgeParams.providerOptions;
 
     const [isConnected, setConnected] = useState(false);
-    const [tokenBalance, setTokenBalance] = useState({ trueBalance: 'N/A', theBalance: 'N/A', connectedWalletAddress: 'N/A', filteredAddress: 'N/A', isWhiteListed: false });
+    const [tokenBalance, setTokenBalance] = useState({ contractBalance: '----', rawBalance: '----', theBalance: '----', connectedWalletAddress: '----', filteredAddress: '----', isWhiteListed: false });
     const [isWaiting, setIsWaiting] = useState(false);
     // const [numMinted, setnumMinted] = useState(0);
     const [isRevealed, setIsRevealed] = useState(false);
@@ -56,15 +56,15 @@ export default function NFTWalletBridge(e) {
 
             setConnected(true)
 
-            if (!accounts) {
+            if (accounts == null) {
+               
                 accounts = await web3.eth.getAccounts();
-
+                
                 networkId = await web3.eth.net.getId();
 
                 connectedWalletAddress = ethers.utils.getAddress(accounts[0])
 
                 contract = new web3.eth.Contract(contractABI, tokenAddress, { from: connectedWalletAddress, gas: process.env.defaultGas });
-
 
                 await getBlockChainData(e);
             }
@@ -73,25 +73,31 @@ export default function NFTWalletBridge(e) {
     }
 
     async function getBlockChainData(props) {
+        
+        console.log(contract)
         let totalShares = await contract.methods.totalSupply.call();
         let resultTS = await totalShares.call();
-        //console.log(`totalShares: ${resultTS}`)
-        setnumMinted(resultTS);
+        console.log(`totalShares: ${resultTS}`)
+        
+        //setnumMinted(resultTS);
 
-        let balance2 = await GetBalance();
+        const balance1 = await GetBalance();            
+        const balance2 = web3.utils.fromWei(balance1, "ether");
 
-        // await getRevealed();
-        // await getPublicMintStatus();
-        // await getPrivateMintStatus();
-        await getBalanceOf({ wallet: connectedWalletAddress });
-
-        balance2 = web3.utils.fromWei(balance2, "ether");
+        const rawContractBalance = await contract.methods.balanceOf(connectedWalletAddress).call();
+        const contractBalance = web3.utils.fromWei(rawContractBalance, "gwei");
+        
         const filtered = connectedWalletAddress.substr(0, 6) + "..." + connectedWalletAddress.substr(connectedWalletAddress.length - 6);
 
         let isThisAddressOnWhitelist = await CheckIfOnWhitelist(props.mintType, connectedWalletAddress);
 
         setTokenBalance({
-            trueBalance: balance2, theBalance: balance2, connectedWalletAddress: connectedWalletAddress, filteredAddress: filtered,
+            contractBalance: contractBalance,
+            rawContractBalance: rawContractBalance,
+            rawBalance: balance1, 
+            theBalance: balance2, 
+            connectedWalletAddress: connectedWalletAddress, 
+            filteredAddress: filtered,
             isWhiteListed: isThisAddressOnWhitelist
         });
     }
@@ -178,7 +184,7 @@ export default function NFTWalletBridge(e) {
             console.log("disconnect" + " - " + error);
             provider = null;
             setConnected(false);
-            setTokenBalance({ theBalance: 'N/A', connectedWalletAddress: 'N/A', isWhiteListed: false })
+            setTokenBalance({ theBalance: '----', connectedWalletAddress: '----', isWhiteListed: false })
             disconnect()
         });
 
@@ -187,7 +193,7 @@ export default function NFTWalletBridge(e) {
             console.log("disconnect" + " - " + error);
             provider = null;
             setConnected(false);
-            setTokenBalance({ theBalance: 'N/A', connectedWalletAddress: 'N/A', isWhiteListed: false })
+            setTokenBalance({ theBalance: '----', connectedWalletAddress: '----', isWhiteListed: false })
             disconnect()
         });
         return ethersProvider;//new Web3(provider);
@@ -458,14 +464,17 @@ export default function NFTWalletBridge(e) {
         return thisResult;
     }
 
-    async function getBalanceOf(props) {
+    async function getBalanceOf(contractT, walletAddress) {
+        const result = await contractT.balanceOf(accounts[0].toLowerCase());
 
-        contract = new web3.eth.Contract(contractABI, tokenAddress, { from: connectedWalletAddress, gas: 50000 });
-
-        let thisResult = await contract.methods.balanceOf(props.wallet).call();
-        setWalletBalance(thisResult);
-
-        return thisResult;
+        const initialBalance = ethers.utils.formatUnits(result, 9)
+        setWalletBalance(initialBalance);
+        //getCurrentBlock()
+        //getWalletAddress()
+        //const result = await contractT.methods.balanceOf(walletAddress).call(); // 29803630997051883414242659
+        //const initialBalance = web3.utils.fromWei(result, 'gwei'); // 29803630.997051883414242659
+        //console.log(initialBalance);
+        return initialBalance;
     }
 
     function GetHashes(props) {

@@ -13,6 +13,7 @@ module.exports = {
     ethValue : "0.05",
     ethWLValue : "0.0",
     debug: false,
+    nativeCurrency: "BNB",
     network: 'binance',
     chainId: 56,
     //mintType: "Whitelist",
