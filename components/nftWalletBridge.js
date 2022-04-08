@@ -56,7 +56,7 @@ export default function NFTWalletBridge(e) {
 
             setConnected(true)
 
-            if (accounts == null) {
+            if (!accounts) {
                
                 accounts = await web3.eth.getAccounts();
                 
@@ -72,12 +72,13 @@ export default function NFTWalletBridge(e) {
         catch (e) { }
     }
 
+    
+
     async function getBlockChainData(props) {
         
-        console.log(contract)
         let totalShares = await contract.methods.totalSupply.call();
         let resultTS = await totalShares.call();
-        console.log(`totalShares: ${resultTS}`)
+        //console.log(`totalShares: ${resultTS}`)
         
         //setnumMinted(resultTS);
 
@@ -85,6 +86,7 @@ export default function NFTWalletBridge(e) {
         const balance2 = web3.utils.fromWei(balance1, "ether");
 
         const rawContractBalance = await contract.methods.balanceOf(connectedWalletAddress).call();
+        
         const contractBalance = web3.utils.fromWei(rawContractBalance, "gwei");
         
         const filtered = connectedWalletAddress.substr(0, 6) + "..." + connectedWalletAddress.substr(connectedWalletAddress.length - 6);
@@ -92,10 +94,10 @@ export default function NFTWalletBridge(e) {
         let isThisAddressOnWhitelist = await CheckIfOnWhitelist(props.mintType, connectedWalletAddress);
 
         setTokenBalance({
-            contractBalance: contractBalance,
+            contractBalance: numberWithCommas(roundUp(contractBalance)),
             rawContractBalance: rawContractBalance,
             rawBalance: balance1, 
-            theBalance: balance2, 
+            theBalance: numberWithCommas(roundUp(balance2)), 
             connectedWalletAddress: connectedWalletAddress, 
             filteredAddress: filtered,
             isWhiteListed: isThisAddressOnWhitelist
@@ -131,14 +133,15 @@ export default function NFTWalletBridge(e) {
     async function disconnect() {
         // await provider.close();
         provider = null;
-
+        await web3.eth.currentProvider.disconnect();
         const web3Modal = new Web3Modal({
             cacheProvider: true, // optional
             providerOptions
             //disableInjectedProvider: false // required
         });
-        web3Modal.clearCachedProvider()
+        web3Modal.clearCachedProvider();
         setConnected(false)
+        
         window.localStorage.clear();
         sessionStorage.clear();
         window.location.reload();
@@ -213,256 +216,17 @@ export default function NFTWalletBridge(e) {
     function numberWithCommas(x) {
         return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
-
-    async function sendMint(props) {
-
-        if (process.env.debug) {
-            console.log(props);
-        }
-
-        let ethValue = 0;
-
-        if (props.mintType == "Public") {
-            ethValue = +process.env.ethValue;
-        }
-        else {
-            ethValue = +process.env.ethWLValue;
-        }
-        const TotalTokens = Math.round((ethValue * props.mint) * 10000) / 10000
-
-        let currentGasPrice = await web3.eth.getGasPrice()
-
-        if (process.env.debug) {
-            console.log(`currentGasPrice: ${currentGasPrice}`)
-        }
-
-        let gas_price = process.env.defaultGas;//Web3.fromWei(currentGasPrice, 'gwei') 
-
-        if (process.env.debug) {
-            console.log(`gas_price: ${gas_price}`)
-        }
-
-        var tokens = web3.utils.toWei(TotalTokens.toString(), 'ether')
-        var bntokens = web3.utils.toBN(tokens)
-        contract = new web3.eth.Contract(contractABI, tokenAddress, { from: connectedWalletAddress, gas: process.env.defaultGas * props.mint });
-        setIsWaiting(true)
-        setErrorMessage("");
-
-        if (props.mintType == "Public") {
-            let txTransfer = await contract.methods
-                .PublicMint(props.mint)
-                .send({ from: connectedWalletAddress, value: bntokens })
-                .on('transactionHash', function (hash) {
-                    //hashArray = [];
-
-                    hashArray.push({ id: 1, txHash: hash, filteredTxHash: hash.substr(0, 10) + "..." + hash.substr(hash.length - 10) });
-                    setTxs(hashArray);
-                    sethashTx(GetHashes(txs));
-                    //console.log(hash);
-                })
-                .then(function (result) {
-                    setIsWaiting(false);
-                    //alert('Transaction success');
-                    getBlockChainData(props);
-                }).catch(function (e) {
-                    setIsWaiting(false);
-                    setErrorMessage(e.message);
-                    console.log(e);
-                    getBlockChainData(props);
-                });
-        }
-
-        let isThisAddressOnWhitelist = await CheckIfOnWhitelist(props.mintType, connectedWalletAddress)
-        if (props.mintType == "Pre-Sale" && isThisAddressOnWhitelist) {
-
-            let thisWL = Whitelist();
-
-            let txTransfer1 = await contract.methods
-                .whitelistMint(props.mint, thisWL[connectedWalletAddress].q, thisWL[connectedWalletAddress].xMPass)
-                .send({ from: connectedWalletAddress, value: bntokens })
-                .on('transactionHash', function (hash) {
-                    //hashArray = [];
-
-                    hashArray.push({ id: 1, txHash: hash, filteredTxHash: hash.substr(0, 10) + "..." + hash.substr(hash.length - 10) });
-                    setTxs(hashArray);
-                    sethashTx(GetHashes(txs));
-                    //console.log(hash);
-                })
-                .then(function (result) {
-                    setIsWaiting(false);
-                    getBlockChainData(props);
-                    //alert('Transaction success');
-                }).catch(function (e) {
-                    setIsWaiting(false);
-                    setErrorMessage(e.message);
-                    console.log(e);
-                    getBlockChainData(props);
-                });
-        }
-
-
-        // let txTransfer = await contract.methods.mint1(Amount).estimateGas()
-        // .then(function (estimate) {
-        //   console.log("Estimated gas to execute mint: ", estimate);
-        // });
-
-        //let txTransfer = await contract.methods.mint1(Amount).call();
-        //let txTransfer2 = txTransfer.estimateGas({from: connectedWalletAddress});
-        //console.log(txTransfer);
-        return {};
+    
+    function numberWithCommas(x) {
+        return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+    
+    function roundUp(x)
+    {
+        return Math.round(x * 100) / 100
     }
 
-    async function togglePublicMint() {
 
-        if (process.env.debug) {
-            console.log(Amount);
-        }
-
-        //const TotalTokens = 0.075 * Amount;
-
-        contract = new web3.eth.Contract(contractABI, tokenAddress, { from: connectedWalletAddress, gas: 50000 });
-        setIsWaiting(true)
-        setErrorMessage("");
-
-        let txTransfer = await contract.methods
-            .togglePublicMint()
-            .send({ from: connectedWalletAddress })
-            .on('transactionHash', function (hash) {
-                //hashArray = [];
-
-                hashArray.push({ id: 1, txHash: hash, filteredTxHash: hash.substr(0, 10) + "..." + hash.substr(hash.length - 10) });
-                setTxs(hashArray);
-                sethashTx(GetHashes(txs));
-                //console.log(hash);
-            })
-            .then(function (result) {
-                setIsWaiting(false);
-                //alert('Transaction success');
-            }).catch(function (e) {
-                setIsWaiting(false)
-                setErrorMessage(e.message)
-                console.log(e)
-            });
-
-        return {};
-    }
-
-    async function togglePresaleMint() {
-
-        if (process.env.debug) {
-            console.log(Amount);
-        }
-
-        //const TotalTokens = 0.075 * Amount;
-
-        contract = new web3.eth.Contract(contractABI, tokenAddress, { from: connectedWalletAddress, gas: 50000 });
-        setIsWaiting(true)
-        setErrorMessage("");
-
-        // const estimation = await erc20.contract.methods.togglePresaleMint();
-
-        // console.log(estimation);
-        try {
-            let txTransfer = await contract.methods
-                .togglePresaleMint()
-                .send({ from: connectedWalletAddress })
-                .on('transactionHash', function (hash) {
-                    //hashArray = [];
-
-                    hashArray.push({ id: 1, txHash: hash, filteredTxHash: hash.substr(0, 10) + "..." + hash.substr(hash.length - 10) });
-                    setTxs(hashArray);
-                    sethashTx(GetHashes(txs));
-                    //console.log(hash);
-                })
-                .then(function (result) {
-                    setIsWaiting(false);
-                    alert('Transaction success');
-                }).catch(function (e) {
-                    alert('Transaction Failed');
-                    setIsWaiting(false)
-                    setErrorMessage(e.message)
-                    console.log(e)
-                });
-        } catch (error) {
-
-        }
-
-
-        return {};
-    }
-
-    async function setRevealed(props) {
-
-        if (process.env.debug) {
-            console.log(Amount);
-        }
-
-        //const TotalTokens = 0.075 * Amount;
-
-        contract = new web3.eth.Contract(contractABI, tokenAddress, { from: connectedWalletAddress, gas: 50000 });
-        setIsWaiting(true)
-        setErrorMessage("");
-
-        // const estimation = await erc20.contract.methods.togglePresaleMint();
-
-        // console.log(estimation);
-        try {
-            let txTransfer = await contract.methods
-                .setRevealed(props.revealed)
-                .send({ from: connectedWalletAddress })
-                .on('transactionHash', function (hash) {
-                    //hashArray = [];
-
-                    hashArray.push({ id: 1, txHash: hash, filteredTxHash: hash.substr(0, 10) + "..." + hash.substr(hash.length - 10) });
-                    setTxs(hashArray);
-                    sethashTx(GetHashes(txs));
-                    //console.log(hash);
-                })
-                .then(function (result) {
-                    setIsWaiting(false);
-                    alert('Transaction success');
-                }).catch(function (e) {
-                    alert('Transaction Failed');
-                    setIsWaiting(false)
-                    setErrorMessage(e.message)
-                    // console.log(e)
-                });
-        } catch (error) {
-
-        }
-
-        return {};
-    }
-
-    async function getRevealed() {
-
-        contract = new web3.eth.Contract(contractABI, tokenAddress, { from: connectedWalletAddress, gas: 50000 });
-
-        let thisResult = await contract.methods.revealed().call();
-        setIsRevealed(thisResult);
-
-        return thisResult;
-    }
-
-    async function getPublicMintStatus() {
-
-        contract = new web3.eth.Contract(contractABI, tokenAddress, { from: connectedWalletAddress, gas: 50000 });
-
-        let thisResult = await contract.methods.publicMintIsOpen().call();
-        setIsPublicMintIsOpen(thisResult);
-
-        return thisResult;
-    }
-
-    async function getPrivateMintStatus() {
-
-        contract = new web3.eth.Contract(contractABI, tokenAddress, { from: connectedWalletAddress, gas: 50000 });
-
-        let thisResult = await contract.methods.privateMintIsOpen().call();
-        setIsPrivateMintIsOpen(thisResult);
-
-        return thisResult;
-    }
 
     async function getBalanceOf(contractT, walletAddress) {
         const result = await contractT.balanceOf(accounts[0].toLowerCase());
@@ -565,3 +329,255 @@ export default function NFTWalletBridge(e) {
         }
     };
 };
+
+
+
+    // async function sendMint(props) {
+
+    //     if (process.env.debug) {
+    //         console.log(props);
+    //     }
+
+    //     let ethValue = 0;
+
+    //     if (props.mintType == "Public") {
+    //         ethValue = +process.env.ethValue;
+    //     }
+    //     else {
+    //         ethValue = +process.env.ethWLValue;
+    //     }
+    //     const TotalTokens = Math.round((ethValue * props.mint) * 10000) / 10000
+
+    //     let currentGasPrice = await web3.eth.getGasPrice()
+
+    //     if (process.env.debug) {
+    //         console.log(`currentGasPrice: ${currentGasPrice}`)
+    //     }
+
+    //     let gas_price = process.env.defaultGas;//Web3.fromWei(currentGasPrice, 'gwei') 
+
+    //     if (process.env.debug) {
+    //         console.log(`gas_price: ${gas_price}`)
+    //     }
+
+    //     var tokens = web3.utils.toWei(TotalTokens.toString(), 'ether')
+    //     var bntokens = web3.utils.toBN(tokens)
+    //     contract = new web3.eth.Contract(contractABI, tokenAddress, { from: connectedWalletAddress, gas: process.env.defaultGas * props.mint });
+    //     setIsWaiting(true)
+    //     setErrorMessage("");
+
+    //     if (props.mintType == "Public") {
+    //         let txTransfer = await contract.methods
+    //             .PublicMint(props.mint)
+    //             .send({ from: connectedWalletAddress, value: bntokens })
+    //             .on('transactionHash', function (hash) {
+    //                 //hashArray = [];
+
+    //                 hashArray.push({ id: 1, txHash: hash, filteredTxHash: hash.substr(0, 10) + "..." + hash.substr(hash.length - 10) });
+    //                 setTxs(hashArray);
+    //                 sethashTx(GetHashes(txs));
+    //                 //console.log(hash);
+    //             })
+    //             .then(function (result) {
+    //                 setIsWaiting(false);
+    //                 //alert('Transaction success');
+    //                 getBlockChainData(props);
+    //             }).catch(function (e) {
+    //                 setIsWaiting(false);
+    //                 setErrorMessage(e.message);
+    //                 console.log(e);
+    //                 getBlockChainData(props);
+    //             });
+    //     }
+
+    //     let isThisAddressOnWhitelist = await CheckIfOnWhitelist(props.mintType, connectedWalletAddress)
+    //     if (props.mintType == "Pre-Sale" && isThisAddressOnWhitelist) {
+
+    //         let thisWL = Whitelist();
+
+    //         let txTransfer1 = await contract.methods
+    //             .whitelistMint(props.mint, thisWL[connectedWalletAddress].q, thisWL[connectedWalletAddress].xMPass)
+    //             .send({ from: connectedWalletAddress, value: bntokens })
+    //             .on('transactionHash', function (hash) {
+    //                 //hashArray = [];
+
+    //                 hashArray.push({ id: 1, txHash: hash, filteredTxHash: hash.substr(0, 10) + "..." + hash.substr(hash.length - 10) });
+    //                 setTxs(hashArray);
+    //                 sethashTx(GetHashes(txs));
+    //                 //console.log(hash);
+    //             })
+    //             .then(function (result) {
+    //                 setIsWaiting(false);
+    //                 getBlockChainData(props);
+    //                 //alert('Transaction success');
+    //             }).catch(function (e) {
+    //                 setIsWaiting(false);
+    //                 setErrorMessage(e.message);
+    //                 console.log(e);
+    //                 getBlockChainData(props);
+    //             });
+    //     }
+
+
+    //     // let txTransfer = await contract.methods.mint1(Amount).estimateGas()
+    //     // .then(function (estimate) {
+    //     //   console.log("Estimated gas to execute mint: ", estimate);
+    //     // });
+
+    //     //let txTransfer = await contract.methods.mint1(Amount).call();
+    //     //let txTransfer2 = txTransfer.estimateGas({from: connectedWalletAddress});
+    //     //console.log(txTransfer);
+    //     return {};
+    // }
+
+    // async function togglePublicMint() {
+
+    //     if (process.env.debug) {
+    //         console.log(Amount);
+    //     }
+
+    //     //const TotalTokens = 0.075 * Amount;
+
+    //     contract = new web3.eth.Contract(contractABI, tokenAddress, { from: connectedWalletAddress, gas: 50000 });
+    //     setIsWaiting(true)
+    //     setErrorMessage("");
+
+    //     let txTransfer = await contract.methods
+    //         .togglePublicMint()
+    //         .send({ from: connectedWalletAddress })
+    //         .on('transactionHash', function (hash) {
+    //             //hashArray = [];
+
+    //             hashArray.push({ id: 1, txHash: hash, filteredTxHash: hash.substr(0, 10) + "..." + hash.substr(hash.length - 10) });
+    //             setTxs(hashArray);
+    //             sethashTx(GetHashes(txs));
+    //             //console.log(hash);
+    //         })
+    //         .then(function (result) {
+    //             setIsWaiting(false);
+    //             //alert('Transaction success');
+    //         }).catch(function (e) {
+    //             setIsWaiting(false)
+    //             setErrorMessage(e.message)
+    //             console.log(e)
+    //         });
+
+    //     return {};
+    // }
+
+    // async function togglePresaleMint() {
+
+    //     if (process.env.debug) {
+    //         console.log(Amount);
+    //     }
+
+    //     //const TotalTokens = 0.075 * Amount;
+
+    //     contract = new web3.eth.Contract(contractABI, tokenAddress, { from: connectedWalletAddress, gas: 50000 });
+    //     setIsWaiting(true)
+    //     setErrorMessage("");
+
+    //     // const estimation = await erc20.contract.methods.togglePresaleMint();
+
+    //     // console.log(estimation);
+    //     try {
+    //         let txTransfer = await contract.methods
+    //             .togglePresaleMint()
+    //             .send({ from: connectedWalletAddress })
+    //             .on('transactionHash', function (hash) {
+    //                 //hashArray = [];
+
+    //                 hashArray.push({ id: 1, txHash: hash, filteredTxHash: hash.substr(0, 10) + "..." + hash.substr(hash.length - 10) });
+    //                 setTxs(hashArray);
+    //                 sethashTx(GetHashes(txs));
+    //                 //console.log(hash);
+    //             })
+    //             .then(function (result) {
+    //                 setIsWaiting(false);
+    //                 alert('Transaction success');
+    //             }).catch(function (e) {
+    //                 alert('Transaction Failed');
+    //                 setIsWaiting(false)
+    //                 setErrorMessage(e.message)
+    //                 console.log(e)
+    //             });
+    //     } catch (error) {
+
+    //     }
+
+
+    //     return {};
+    // }
+
+    // async function setRevealed(props) {
+
+    //     if (process.env.debug) {
+    //         console.log(Amount);
+    //     }
+
+    //     //const TotalTokens = 0.075 * Amount;
+
+    //     contract = new web3.eth.Contract(contractABI, tokenAddress, { from: connectedWalletAddress, gas: 50000 });
+    //     setIsWaiting(true)
+    //     setErrorMessage("");
+
+    //     // const estimation = await erc20.contract.methods.togglePresaleMint();
+
+    //     // console.log(estimation);
+    //     try {
+    //         let txTransfer = await contract.methods
+    //             .setRevealed(props.revealed)
+    //             .send({ from: connectedWalletAddress })
+    //             .on('transactionHash', function (hash) {
+    //                 //hashArray = [];
+
+    //                 hashArray.push({ id: 1, txHash: hash, filteredTxHash: hash.substr(0, 10) + "..." + hash.substr(hash.length - 10) });
+    //                 setTxs(hashArray);
+    //                 sethashTx(GetHashes(txs));
+    //                 //console.log(hash);
+    //             })
+    //             .then(function (result) {
+    //                 setIsWaiting(false);
+    //                 alert('Transaction success');
+    //             }).catch(function (e) {
+    //                 alert('Transaction Failed');
+    //                 setIsWaiting(false)
+    //                 setErrorMessage(e.message)
+    //                 // console.log(e)
+    //             });
+    //     } catch (error) {
+
+    //     }
+
+    //     return {};
+    // }
+
+    // async function getRevealed() {
+
+    //     contract = new web3.eth.Contract(contractABI, tokenAddress, { from: connectedWalletAddress, gas: 50000 });
+
+    //     let thisResult = await contract.methods.revealed().call();
+    //     setIsRevealed(thisResult);
+
+    //     return thisResult;
+    // }
+
+    // async function getPublicMintStatus() {
+
+    //     contract = new web3.eth.Contract(contractABI, tokenAddress, { from: connectedWalletAddress, gas: 50000 });
+
+    //     let thisResult = await contract.methods.publicMintIsOpen().call();
+    //     setIsPublicMintIsOpen(thisResult);
+
+    //     return thisResult;
+    // }
+
+    // async function getPrivateMintStatus() {
+
+    //     contract = new web3.eth.Contract(contractABI, tokenAddress, { from: connectedWalletAddress, gas: 50000 });
+
+    //     let thisResult = await contract.methods.privateMintIsOpen().call();
+    //     setIsPrivateMintIsOpen(thisResult);
+
+    //     return thisResult;
+    // }

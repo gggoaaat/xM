@@ -6,6 +6,7 @@ module.exports = {
   env: {
     siteTitle: "The xMooney Community",
     contractAddress: "0x98631c69602083d04f83934576a53e2a133d482f",
+    contractSymbol : "xM",
     infuraID: "045e9c65387a4200aa8559c347fa19a4",
     defaultGas: 125000,//75000,
     mintType : "Pre-Sale", //Pre-Sale Public

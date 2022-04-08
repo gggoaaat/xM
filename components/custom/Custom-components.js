@@ -1,7 +1,7 @@
 import React from "react";
 
 // core components
-import MintPage from "../banner/MintPage";
+import XMLandindPage from "../banner/xmLandingPage";
 
 // sections for this page
 import HeaderComponent from "./sections/headercomponent";
@@ -20,7 +20,7 @@ import CallToAction from "../../components/call-to-action/CallToAction";
 const CustomComponents = () => {
   return (
     <div>
-      <MintPage />
+      <XMLandindPage />
       <BannerComponent />
       {/* <HeaderComponent />
       <BannerComponent />

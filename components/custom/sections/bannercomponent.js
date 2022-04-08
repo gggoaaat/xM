@@ -12,9 +12,8 @@ const BannerComponent = () => {
             <Col md="7" className="text-center">
               <h1 className="title font-bold">Disclaimer</h1>
               <h6 className="subtitle">
-              Please make sure you are connected to the right network (Ethereum Mainnet) and the correct address. Please note: Once you make the purchase, you cannot undo this action.
+              Please make sure you are connected to the right network (Binance Smart Chain) and the correct address.
               </h6>
-              <h6>We have set the gas limit for the contract to successfully mint your NFT. We recommend that you don't lower the gas limit. The gas that is displayed will not be the final price, it will always be cheaper then displayed.</h6>
             </Col>
           </Row>
         </Container>
